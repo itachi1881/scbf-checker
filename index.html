@@ -1,0 +1,986 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="SCBF bracing member checker per AISC 341-22 and AISC 360-22. V-Brace (Chevron) and X-Brace systems. Checks slenderness, compactness, compression, tension, and strut beam capacities.">
+<meta property="og:title" content="SCBF Brace & Beam Checker">
+<meta property="og:description" content="Free web tool for checking SCBF braces and strut beams per AISC 341-22 / 360-22.">
+<meta property="og:type" content="website">
+<title>SCBF Brace &amp; Beam Checker — AISC 341-22 / 360-22</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;background:#f0f2f5;color:#1a1a2e}
+#app{max-width:1100px;margin:0 auto;padding:16px}
+h1{font-size:18px;font-weight:700;color:#1a3a6b;margin-bottom:2px}
+.subtitle{font-size:11px;color:#666;margin-bottom:14px}
+.card{background:#fff;border-radius:6px;border:1px solid #d0d7e3;padding:14px 16px;margin-bottom:12px}
+.card h2{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#1a3a6b;border-bottom:2px solid #1a3a6b;padding-bottom:5px;margin-bottom:10px}
+.card h3{font-size:11px;font-weight:700;color:#444;margin:10px 0 6px}
+.sys-btns{display:flex;gap:10px;margin-bottom:4px}
+.sys-btn{flex:1;padding:14px;border:2px solid #c5cdd8;border-radius:6px;background:#f8f9fb;cursor:pointer;text-align:center;transition:all .15s}
+.sys-btn:hover{border-color:#3a7bd5;background:#eef3fc}
+.sys-btn.active{border-color:#1a3a6b;background:#1a3a6b;color:#fff}
+.sys-btn .sys-icon{font-size:22px;display:block;margin-bottom:4px}
+.sys-btn .sys-name{font-weight:700;font-size:13px}
+.sys-btn .sys-desc{font-size:10px;opacity:.7}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.field{display:flex;flex-direction:column;gap:3px}
+.field label{font-size:11px;color:#555;font-weight:600}
+.field input,.field select{border:1px solid #c5cdd8;border-radius:4px;padding:5px 7px;font-size:12px;width:100%;outline:none}
+.field input:focus,.field select:focus{border-color:#3a7bd5}
+.field .unit{font-size:10px;color:#888;margin-top:1px}
+.calc-btn{display:block;width:100%;padding:11px;background:#1a3a6b;color:#fff;border:none;border-radius:5px;font-size:13px;font-weight:700;cursor:pointer;margin-top:4px}
+.calc-btn:hover{background:#2453a3}
+.report-btn{display:block;width:100%;padding:11px;background:#2e7d32;color:#fff;border:none;border-radius:5px;font-size:13px;font-weight:700;cursor:pointer;margin-top:8px}
+.report-btn:hover{background:#1b5e20}
+table.results{width:100%;border-collapse:collapse;font-size:11.5px}
+table.results th{background:#1a3a6b;color:#fff;padding:6px 8px;text-align:left;font-weight:600;white-space:nowrap}
+table.results td{padding:5px 8px;border-bottom:1px solid #e8ecf0;vertical-align:middle}
+table.results tr:nth-child(even) td{background:#f8f9fb}
+.section-row td{background:#dce6f0!important;font-weight:700;color:#1a3a6b;font-size:11px;padding:4px 8px}
+.ok{color:#2e7d32;font-weight:700}
+.fail{color:#c62828;font-weight:700}
+.ratio-bar{height:10px;border-radius:3px;background:#e0e0e0;overflow:hidden;min-width:60px}
+.ratio-fill{height:100%;border-radius:3px;transition:width .3s}
+.r-ok{background:#4caf50}
+.r-warn{background:#ff9800}
+.r-fail{background:#f44336}
+.hidden{display:none}
+.auto-note{font-size:10px;color:#3a7bd5;margin-top:1px}
+/* Report styles */
+#report{display:none;background:#fff;min-height:100vh;padding:0}
+#report.visible{display:block}
+.rpt{max-width:850px;margin:0 auto;padding:30px 40px;font-family:Arial,sans-serif;font-size:11.5px;color:#111}
+.rpt h1{font-size:16px;color:#1a3a6b;border-bottom:3px double #1a3a6b;padding-bottom:6px;margin-bottom:4px}
+.rpt h2{font-size:13px;color:#1a3a6b;background:#dce6f0;padding:4px 8px;margin:14px 0 6px;border-left:4px solid #1a3a6b}
+.rpt h3{font-size:12px;color:#333;border-bottom:1px solid #ccc;margin:10px 0 5px;padding-bottom:2px}
+.rpt .rpt-grid{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.rpt .rpt-row{display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px dotted #ddd}
+.rpt .rpt-label{color:#555;flex:1}
+.rpt .rpt-val{font-weight:600;text-align:right}
+.rpt .formula{background:#f5f5f5;border-left:3px solid #aaa;padding:4px 8px;margin:3px 0;font-family:monospace;font-size:11px}
+.rpt table{width:100%;border-collapse:collapse;margin:6px 0;font-size:11px}
+.rpt table th{background:#1a3a6b;color:#fff;padding:4px 6px;text-align:left}
+.rpt table td{padding:3px 6px;border:1px solid #ddd}
+.rpt .ok{color:#2e7d32;font-weight:700}
+.rpt .fail{color:#c62828;font-weight:700}
+.rpt-actions{position:fixed;top:0;left:0;right:0;background:#1a3a6b;padding:8px 20px;display:flex;gap:10px;z-index:100}
+.rpt-actions button{padding:6px 14px;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600}
+.btn-back{background:#fff;color:#1a3a6b}
+.btn-print{background:#4caf50;color:#fff}
+@media print{
+  .rpt-actions{display:none}
+  .rpt{padding:15px 20px}
+  body{background:#fff}
+}
+/* PIN gate */
+#pinOverlay{position:fixed;inset:0;background:rgba(10,20,50,.96);z-index:9999;display:flex;align-items:center;justify-content:center}
+#pinOverlay.hidden{display:none}
+.pin-box{background:#fff;border-radius:10px;padding:36px 40px;text-align:center;width:320px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.pin-box h2{font-size:17px;color:#1a3a6b;margin-bottom:6px}
+.pin-box p{font-size:12px;color:#777;margin-bottom:18px}
+.pin-box input{width:100%;padding:10px;font-size:18px;text-align:center;letter-spacing:6px;border:2px solid #c5cdd8;border-radius:6px;outline:none;margin-bottom:10px}
+.pin-box input:focus{border-color:#1a3a6b}
+.pin-box button{width:100%;padding:10px;background:#1a3a6b;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer}
+.pin-box button:hover{background:#2453a3}
+.pin-box .pin-err{color:#c62828;font-size:12px;margin-top:8px;min-height:18px}
+</style>
+</head>
+<body>
+<div id="pinOverlay" class="hidden">
+  <div class="pin-box">
+    <h2>SCBF Checker</h2>
+    <p>Enter the access PIN to continue</p>
+    <input type="password" id="pinInput" maxlength="20" placeholder="••••" onkeydown="if(event.key==='Enter')checkPin()">
+    <button onclick="checkPin()">Unlock</button>
+    <div class="pin-err" id="pinErr"></div>
+  </div>
+</div>
+<div id="app">
+  <h1>SCBF Brace &amp; Beam / Strut Checker</h1>
+  <div class="subtitle">AISC 341-22 · AISC 360-22 · Special Concentrically Braced Frames — V (Chevron) &amp; X-Brace Systems</div>
+
+  <!-- STEP 1: System Selection -->
+  <div class="card">
+    <h2>Step 1 — Select Bracing System</h2>
+    <div class="sys-btns">
+      <button class="sys-btn active" id="btnV" onclick="setSystem('V')">
+        <span class="sys-icon">∧</span>
+        <span class="sys-name">V-Brace (Chevron)</span>
+        <span class="sys-desc">Single brace pair meeting at beam midspan</span>
+      </button>
+      <button class="sys-btn" id="btnX" onclick="setSystem('X')">
+        <span class="sys-icon">✕</span>
+        <span class="sys-name">X-Brace</span>
+        <span class="sys-desc">Two diagonal pairs crossing at midspan</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 2: Inputs -->
+  <div class="card">
+    <h2>Step 2 — Input Parameters</h2>
+
+    <!-- Frame Geometry -->
+    <h3>① Frame Geometry</h3>
+    <div class="grid3">
+      <div class="field">
+        <label>Beam Span L [m]</label>
+        <input type="number" id="iL" value="6.0" step="0.1" oninput="autoGeo()">
+      </div>
+      <div class="field">
+        <label>Story Height H [m]</label>
+        <input type="number" id="iH" value="3.0" step="0.1" oninput="autoGeo()">
+      </div>
+      <div class="field">
+        <label>Eff. Length Factor K</label>
+        <input type="number" id="iK" value="1.0" step="0.05">
+      </div>
+      <div class="field">
+        <label>Brace Angle θ [deg]</label>
+        <input type="number" id="iTheta" value="45.0" step="0.1" readonly style="background:#f0f4fa">
+        <span class="auto-note">Auto: arctan(H/(L/2))</span>
+      </div>
+      <div class="field">
+        <label>Brace Length L<sub>br</sub> [m]</label>
+        <input type="number" id="iLbr" value="4.243" step="0.001" readonly style="background:#f0f4fa">
+        <span class="auto-note">Auto: √((L/2)²+H²)</span>
+      </div>
+    </div>
+
+    <!-- Brace (V) -->
+    <h3 id="braceVLabel">② Brace Member — Chevron (V) · Highly Ductile [AISC 341-22 §F2.5b, Table D1.1]</h3>
+    <div class="grid3">
+      <div class="field">
+        <label>Profile</label>
+        <select id="iBraceVProfile"></select>
+      </div>
+      <div class="field">
+        <label>Steel Grade</label>
+        <select id="iBraceVGrade"><option>S-235</option><option>S-275</option><option>S-355</option></select>
+      </div>
+      <div class="field">
+        <label>Pu — Compression Demand [kN]</label>
+        <input type="number" id="iBraceVPu" value="250" step="1">
+      </div>
+      <div class="field">
+        <label>Tu — Tension Demand [kN]</label>
+        <input type="number" id="iBraceVTu" value="250" step="1">
+      </div>
+      <div class="field">
+        <label>Bolt holes n (tension check)</label>
+        <input type="number" id="iBraceVn" value="4" step="1">
+      </div>
+      <div class="field">
+        <label>Hole diameter d<sub>h</sub> [mm]</label>
+        <input type="number" id="iBraceVdh" value="22" step="1">
+      </div>
+    </div>
+
+    <!-- Brace (X) – Bottom brace, hidden for V system -->
+    <div id="xBraceSection">
+      <h3>③ Brace Member — X-Brace (Lower Diagonal) · Highly Ductile [AISC 341-22 §F2.5b, Table D1.1]</h3>
+      <div class="grid3">
+        <div class="field">
+          <label>Profile</label>
+          <select id="iBraceXProfile"></select>
+        </div>
+        <div class="field">
+          <label>Steel Grade</label>
+          <select id="iBraceXGrade"><option>S-235</option><option>S-275</option><option>S-355</option></select>
+        </div>
+        <div class="field">
+          <label>Pu — Compression Demand [kN]</label>
+          <input type="number" id="iBraceXPu" value="250" step="1">
+        </div>
+        <div class="field">
+          <label>Tu — Tension Demand [kN]</label>
+          <input type="number" id="iBraceXTu" value="250" step="1">
+        </div>
+        <div class="field">
+          <label>Bolt holes n</label>
+          <input type="number" id="iBraceXn" value="4" step="1">
+        </div>
+        <div class="field">
+          <label>Hole diameter d<sub>h</sub> [mm]</label>
+          <input type="number" id="iBraceXdh" value="22" step="1">
+        </div>
+      </div>
+    </div>
+
+    <!-- Beam/Strut -->
+    <h3 id="beamLabel">④ Beam / Strut Member — Moderately Ductile [AISC 341-22 §F2.4b]</h3>
+    <div class="grid3">
+      <div class="field">
+        <label>Profile</label>
+        <select id="iBeamProfile"></select>
+      </div>
+      <div class="field">
+        <label>Steel Grade</label>
+        <select id="iBeamGrade"><option>S-235</option><option>S-275</option><option value="S-355" selected>S-355</option></select>
+      </div>
+      <div class="field">
+        <label>Uniform gravity load w<sub>g</sub> [kN/m]</label>
+        <input type="number" id="iWg" value="1" step="0.1">
+      </div>
+      <div class="field">
+        <label>Uniform live load w<sub>q</sub> [kN/m]</label>
+        <input type="number" id="iWq" value="1" step="0.1">
+      </div>
+      <div class="field">
+        <label>Uniform snow load w<sub>s</sub> [kN/m]</label>
+        <input type="number" id="iWs" value="0" step="0.1">
+      </div>
+      <div class="field">
+        <label>Unbraced length L<sub>b</sub> [m]</label>
+        <input type="number" id="iLb" value="6" step="0.1">
+      </div>
+      <div class="field">
+        <label>Seismic param. S<sub>DS</sub></label>
+        <input type="number" id="iSDS" value="1.00" step="0.01">
+      </div>
+    </div>
+
+    <button class="calc-btn" onclick="runCalc()">▶ Run Checks</button>
+  </div>
+
+  <!-- STEP 3: Results -->
+  <div class="card" id="resultsCard" style="display:none">
+    <h2>Step 3 — Check Results</h2>
+    <div id="resultsTable"></div>
+    <button class="report-btn" onclick="showReport()">📄 Generate Calculation Report</button>
+  </div>
+</div>
+
+<!-- REPORT VIEW -->
+<div id="report">
+  <div class="rpt-actions">
+    <button class="btn-back" onclick="hideReport()">← Back to Calculator</button>
+    <button class="btn-print" onclick="window.print()">🖨 Print / Save PDF</button>
+  </div>
+  <div class="rpt" id="reportContent" style="padding-top:50px"></div>
+</div>
+
+<script>
+// ── ACCESS CONTROL ─────────────────────────────────────────────────────────────
+// Set ACCESS_PIN to a non-empty string (e.g. "1234") to enable PIN protection.
+// Leave empty ("") to allow open access. Change the PIN here and redeploy.
+const ACCESS_PIN = "";
+
+function initPinGate() {
+  if (!ACCESS_PIN) return; // disabled
+  const stored = sessionStorage.getItem('scbf_auth');
+  if (stored === btoa(ACCESS_PIN)) return; // already unlocked this session
+  document.getElementById('pinOverlay').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('pinInput').focus(), 100);
+}
+function checkPin() {
+  const val = document.getElementById('pinInput').value;
+  if (val === ACCESS_PIN) {
+    sessionStorage.setItem('scbf_auth', btoa(ACCESS_PIN));
+    document.getElementById('pinOverlay').classList.add('hidden');
+    document.body.style.overflow = '';
+  } else {
+    const err = document.getElementById('pinErr');
+    err.textContent = 'Incorrect PIN. Try again.';
+    document.getElementById('pinInput').value = '';
+    document.getElementById('pinInput').focus();
+    setTimeout(()=>err.textContent='', 3000);
+  }
+}
+
+// ── MATERIAL DATABASE ─────────────────────────────────────────────────────────
+const MAT = {
+  "S-235": {Fy:235, Fu:360, E:200000, Ry:1.5, Rt:1.2},
+  "S-275": {Fy:275, Fu:430, E:200000, Ry:1.3, Rt:1.1},
+  "S-355": {Fy:355, Fu:490, E:200000, Ry:1.1, Rt:1.1}
+};
+
+// ── PROFILE DATABASE ──────────────────────────────────────────────────────────
+// Fields: [name, G, h, b, tw, tf, r, A, Iz, iy, iz, Wely, Wply, It]
+// Units:  -   kg/m mm mm mm  mm  mm cm² cm⁴ cm  cm  cm³   cm³   cm⁴
+const PROF_RAW = [
+["HE 100 A",16.7,96,100,5,8,12,21.24,133.8,4.06,2.51,72.76,83.01,5.24],
+["HE 100 AA",12.2,91,100,4.2,5.5,12,15.6,92.06,3.89,2.43,51.98,58.36,2.51],
+["HE 100 B",20.4,100,100,6,10,12,26.04,167.3,4.16,2.53,89.91,104.2,9.25],
+["HE 100 M",41.8,120,106,12,20,12,53.24,399.2,4.63,2.74,190.4,235.8,68.21],
+["HE 120 A",19.9,114,120,5,8,12,25.34,230.9,4.89,3.02,106.3,119.5,5.99],
+["HE 120 AA",14.6,109,120,4.2,5.5,12,18.55,158.8,4.72,2.93,75.85,84.12,2.78],
+["HE 120 B",26.7,120,120,6.5,11,12,34.01,317.5,5.04,3.06,144.1,165.2,13.84],
+["HE 120 M",52.1,140,126,12.5,21,12,66.41,702.8,5.51,3.25,288.2,350.6,91.66],
+["HE 140 A",24.7,133,140,5.5,8.5,12,31.42,389.3,5.73,3.52,155.4,173.5,8.13],
+["HE 140 AA",18.1,128,140,4.3,6,12,23.02,274.8,5.59,3.45,112.4,123.8,3.54],
+["HE 140 B",33.7,140,140,7,12,12,42.96,549.7,5.93,3.58,215.6,245.4,20.06],
+["HE 140 M",63.2,160,146,13,22,12,80.56,1144,6.39,3.77,411.4,493.8,120],
+["HE 160 A",30.4,152,160,6,9,15,38.77,615.6,6.57,3.98,220.1,245.1,12.19],
+["HE 160 AA",23.8,148,160,4.5,7,15,30.36,478.7,6.5,3.97,173.4,190.4,6.33],
+["HE 160 B",42.6,160,160,8,13,15,54.25,889.2,6.78,4.05,311.5,354,31.24],
+["HE 160 M",76.2,180,166,14,23,15,97.05,1759,7.25,4.26,566.5,674.6,162.4],
+["HE 180 A",35.5,171,180,6,9.5,15,45.25,924.6,7.45,4.52,293.6,324.9,14.8],
+["HE 180 AA",28.7,167,180,5,7.5,15,36.53,730,7.34,4.47,235.6,258.2,8.33],
+["HE 180 B",51.2,180,180,8.5,14,15,65.25,1363,7.66,4.57,425.7,481.4,42.16],
+["HE 180 M",88.9,200,186,14.5,24,15,113.3,2580,8.13,4.77,748.3,883.4,203.3],
+["HE 200 A",42.3,190,200,6.5,10,18,53.83,1336,8.28,4.98,388.6,429.5,20.98],
+["HE 200 AA",34.6,186,200,5.5,8,18,44.13,1068,8.17,4.92,316.6,347.1,12.69],
+["HE 200 B",61.3,200,200,9,15,18,78.08,2003,8.54,5.07,569.6,642.5,59.28],
+["HE 200 M",103,220,206,15,25,18,131.3,3651,9,5.27,967.4,1135,259.4],
+["HE 220 A",50.5,210,220,7,11,18,64.34,1955,9.17,5.51,515.2,568.5,28.46],
+["HE 220 AA",40.4,205,220,6,8.5,18,51.46,1510,9,5.42,406.9,445.5,15.93],
+["HE 220 B",71.5,220,220,9.5,16,18,91.04,2843,9.43,5.59,735.5,827,76.57],
+["HE 220 M",117,240,226,15.5,26,18,149.4,5012,9.89,5.79,1217,1419,315.3],
+["HE 240 A",60.3,230,240,7.5,12,21,76.84,2769,10.05,6,675.1,744.6,41.55],
+["HE 240 AA",47.4,224,240,6.5,9,21,60.38,2077,9.83,5.87,521,570.6,22.98],
+["HE 240 B",83.2,240,240,10,17,21,106,3923,10.31,6.08,938.3,1053,102.7],
+["HE 240 M",157,270,248,18,32,21,199.6,8153,11.03,6.39,1799,2117,627.9],
+["HE 260 A",68.2,250,260,7.5,12.5,24,86.82,3668,10.97,6.5,836.4,919.8,52.37],
+["HE 260 AA",54.1,244,260,6.5,9.5,24,68.97,2788,10.76,6.36,654.1,714.5,30.31],
+["HE 260 B",93,260,260,10,17.5,24,118.4,5135,11.22,6.58,1148,1283,123.8],
+["HE 260 M",172,290,268,18,32.5,24,219.6,10450,11.94,6.9,2159,2524,719],
+["HE 280 A",76.4,270,280,8,13,24,97.26,4763,11.86,7,1013,1112,62.1],
+["HE 280 AA",61.2,264,280,7,10,24,78.02,3664,11.63,6.85,799.8,873.1,36.22],
+["HE 280 B",103,280,280,10.5,18,24,131.4,6595,12.11,7.09,1376,1534,143.7],
+["HE 280 M",189,310,288,18.5,33,24,240.2,13160,12.83,7.4,2551,2966,807.3],
+["HE 300 A",88.3,290,300,8.5,14,27,112.5,6310,12.74,7.49,1260,1383,85.17],
+["HE 300 AA",69.8,283,300,7.5,10.5,27,88.91,4734,12.46,7.3,975.6,1065,49.35],
+["HE 300 B",117,300,300,11,19,27,149.1,8563,12.99,7.58,1678,1869,185],
+["HE 300 M",238,340,310,21,39,27,303.1,19400,13.98,8,3482,4078,1408],
+["HE 320 A",97.6,310,300,9,15.5,27,124.4,6985,13.58,7.49,1479,1628,108],
+["HE 320 AA",74.2,301,300,8,11,27,94.58,4959,13.19,7.24,1093,1196,55.87],
+["HE 320 B",127,320,300,11.5,20.5,27,161.3,9239,13.82,7.57,1926,2149,225.1],
+["HE 320 M",245,359,309,21,40,27,312,19710,14.78,7.95,3796,4435,1501],
+["HE 340 A",105,330,300,9.5,16.5,27,133.5,7436,14.4,7.46,1678,1850,127.2],
+["HE 340 AA",78.9,320,300,8.5,11.5,27,100.5,5185,13.95,7.18,1222,1341,63.07],
+["HE 340 B",134,340,300,12,21.5,27,170.9,9690,14.65,7.53,2156,2408,257.2],
+["HE 340 M",248,377,309,21,40,27,315.8,19710,15.55,7.9,4052,4718,1506],
+["HE 360 A",112,350,300,10,17.5,27,142.8,7887,15.22,7.43,1891,2088,148.8],
+["HE 360 AA",83.7,339,300,9,12,27,106.6,5410,14.7,7.12,1359,1495,70.99],
+["HE 360 B",142,360,300,12.5,22.5,27,180.6,10140,15.46,7.49,2400,2683,292.5],
+["HE 360 M",250,395,308,21,40,27,318.8,19520,16.32,7.83,4297,4989,1507],
+["HE 400 A",125,390,300,11,19,27,159,8564,16.84,7.34,2311,2562,189],
+["HE 400 AA",92.4,378,300,9.5,13,27,117.7,5861,16.3,7.06,1654,1824,84.69],
+["HE 400 B",155,400,300,13.5,24,27,197.8,10820,17.08,7.4,2884,3232,355.7],
+["HE 400 M",256,432,307,21,40,27,325.8,19340,17.88,7.7,4820,5571,1515],
+["HE 450 A",140,440,300,11.5,21,27,178,9465,18.92,7.29,2896,3216,243.8],
+["HE 450 AA",99.7,425,300,10,13.5,27,127.1,6088,18.16,6.92,1971,2183,95.61],
+["HE 450 B",171,450,300,14,26,27,218,11720,19.14,7.33,3551,3982,440.5],
+["HE 450 M",263,478,307,21,40,27,335.4,19340,19.8,7.59,5501,6331,1529],
+["HE 500 A",155,490,300,12,23,27,197.5,10370,20.98,7.24,3550,3949,309.3],
+["HE 500 AA",107,472,300,10.5,14,27,136.9,6314,19.98,6.79,2315,2576,107.7],
+["HE 500 B",187,500,300,14.5,28,27,238.6,12620,21.19,7.27,4287,4815,538.4],
+["HE 500 M",270,524,306,21,40,27,344.3,19150,21.69,7.46,6180,7094,1539],
+["HE 550 A",166,540,300,12.5,24,27,211.8,10820,22.99,7.15,4146,4622,351.5],
+["HE 550 AA",120,522,300,11.5,15,27,152.8,6767,21.84,6.65,2792,3128,133.7],
+["HE 550 B",199,550,300,15,29,27,254.1,13080,23.2,7.17,4971,5591,600.3],
+["HE 550 M",278,572,306,21,40,27,354.4,19160,23.64,7.35,6923,7933,1554],
+["HE 600 A",178,590,300,13,25,27,226.5,11270,24.97,7.05,4787,5350,397.8],
+["HE 600 AA",129,571,300,12,15.5,27,164.1,6993,23.66,6.53,3218,3623,149.8],
+["HE 600 B",212,600,300,15.5,30,27,270,13530,25.17,7.08,5701,6425,667.2],
+["HE 600 M",285,620,305,21,40,27,363.7,18980,25.55,7.22,7660,8772,1564],
+["HE 600 x 337",337,632,310,25.5,46,27,429.2,22940,25.69,7.31,8961,10380,2451],
+["HE 600 x 399",399,648,315,30,54,27,508.5,28280,26.03,7.46,10640,12460,3966],
+["HE 650 A",190,640,300,13.5,26,27,241.6,11720,26.93,6.97,5474,6136,448.3],
+["HE 650 AA",138,620,300,12.5,16,27,175.8,7221,25.46,6.41,3676,4160,167.5],
+["HE 650 B",225,650,300,16,31,27,286.3,13980,27.12,6.99,6480,7320,739.2],
+["HE 650 M",293,668,305,21,40,27,373.7,18980,27.45,7.13,8433,9657,1579],
+["HE 650 x 343",343,680,309,25,46,27,437.5,22720,27.62,7.21,9815,11350,2442],
+["HE 650 x 407",407,696,314,29.5,54,27,518.8,28020,27.95,7.35,11650,13620,3958],
+["HE 700 A",204,690,300,14.5,27,27,260.5,12180,28.75,6.84,6241,7032,513.9],
+["HE 700 AA",150,670,300,13,17,27,190.9,7673,27.34,6.34,4260,4840,195.2],
+["HE 700 B",241,700,300,17,32,27,306.4,14440,28.96,6.87,7340,8327,830.9],
+["HE 700 M",301,716,304,21,40,27,383,18800,29.32,7.01,9198,10540,1589],
+["HE 700 x 352",352,728,308,25,46,27,448.6,22510,29.47,7.08,10710,12390,2461],
+["HE 700 x 418",418,744,313,29.5,54,27,531.9,27760,29.8,7.22,12700,14840,3989],
+["HE 800 A",224,790,300,15,28,30,285.8,12640,32.58,6.65,7682,8699,596.9],
+["HE 800 AA",172,770,300,14,18,30,218.5,8134,30.92,6.1,5426,6225,256.8],
+["HE 800 B",262,800,300,17.5,33,30,334.2,14900,32.78,6.68,8977,10230,946],
+["HE 800 M",317,814,303,21,40,30,404.3,18630,33.09,6.79,10870,12490,1646],
+["HE 800 x 373",373,826,308,25,46,30,474.6,22530,33.23,6.89,12690,14700,2554],
+["HE 800 x 444",444,842,313,30,54,30,566,27800,33.48,7.01,15070,17640,4180],
+["HE 900 A",252,890,300,16,30,30,320.5,13550,36.29,6.5,9485,10810,736.8],
+["HE 900 AA",198,870,300,15,20,30,252.2,9041,34.55,5.99,6923,7999,334.9],
+["HE 900 B",291,900,300,18.5,35,30,371.3,15820,36.48,6.53,10980,12580,1137],
+["HE 900 M",333,910,302,21,40,30,423.6,18450,36.7,6.6,12540,14440,1671],
+["HE 900 x 391",391,922,307,25,46,30,497.7,22320,36.81,6.7,14630,16990,2597],
+["HE 900 x 466",466,938,312,30,54,30,593.7,27560,37.05,6.81,17380,20380,4256],
+["HE 1000 A",272,990,300,16.5,31,30,346.8,14000,39.96,6.35,11190,12820,822.4],
+["HE 1000 AA",222,970,300,16,21,30,282.2,9501,37.95,5.8,8380,9777,403.4],
+["HE 1000 B",314,1000,300,19,36,30,400,16280,40.15,6.38,12890,14860,1254],
+["HE 1000 M",349,1008,302,21,40,30,444.2,18460,40.32,6.45,14330,16570,1701],
+["HE 1000 x 393",393,1016,303,24.4,43.9,30,500.2,20500,40.18,6.4,15900,18540,2332],
+["HE 1000 x 409",409,1020,306,25,46,30,521.2,22120,40.4,6.51,16680,19450,2642],
+["HE 1000 x 488",488,1036,311,30,54,30,622,27320,40.62,6.63,19820,23300,4334],
+["HE 1000 x 579",579,1056,316,35,64,30,737,34040,41.11,6.8,23590,27950,7102],
+["HL 1000 A",321,990,400,16.5,31,30,408.8,33120,41.27,9,14070,15800,1021],
+["HL 1000 B",371,1000,400,19,36,30,472,38480,41.48,9.03,16240,18330,1565],
+["HL 1000 M",412,1008,402,21,40,30,524.2,43410,41.66,9.1,18050,20440,2128],
+["HL 1000 x 296",296,982,400,16.5,27,30,376.8,28850,40.52,8.75,12600,14220,756.9],
+["HL 1000 x 477",477,1018,404,25.5,45,30,608,49610,41.5,9.03,20570,23530,3159],
+["HL 1000 x 554",554,1032,408,29.5,52,30,705.8,59100,41.79,9.15,23880,27500,4860],
+["HL 1000 x 642",642,1048,412,34,60,30,817.6,70280,42.12,9.27,27680,32100,7440],
+["HL 1000 x 748",748,1068,417,39,70,30,953.4,85111,42.62,9.45,32430,37880,11670],
+["HL 1000 x 883",883,1092,424,45.5,82,30,1125.3,105000,43.16,9.66,38390,45260,18750],
+["HL 1100 A",343,1090,400,18,31,20,436.5,33120,44.58,8.71,15920,18060,1037],
+["HL 1100 B",390,1100,400,20,36,20,497,38480,44.98,8.8,18280,20780,1564],
+["HL 1100 M",433,1108,402,22,40,20,551.2,43410,45.19,8.87,20320,23160,2130],
+["HL 1100 R",499,1118,405,26,45,20,635.2,49980,45.14,8.87,23150,26600,3135],
+["HL 920 x 342",342,912,418,19.3,32,24,436.1,39010,37.85,9.46,13700,15450,1193],
+["HL 920 x 365",365,916,419,20.3,34.3,24,464.4,42120,38,9.52,14640,16520,1446],
+["HL 920 x 387",387,921,420,21.3,36.6,24,493,45280,38.17,9.58,15600,17630,1734],
+["HL 920 x 417",417,928,422,22.5,39.9,24,532.5,50070,38.46,9.7,16970,19210,2200],
+["HL 920 x 446",446,933,423,24,42.7,24,569.6,53980,38.56,9.73,18150,20600,2685],
+["HL 920 x 488",488,942,422,25.9,47,24,621.3,59010,38.8,9.75,19860,22615,3514],
+["HL 920 x 534",534,950,425,28.4,51.1,24,680.1,65560,38.94,9.82,21710,24830,4542],
+["HL 920 x 585",585,960,427,31,55.9,24,745.3,72770,39.16,9.88,23814,27363,5932],
+["HL 920 x 653",653,972,431,34.5,62,24,831.9,83050,39.41,9.99,26590,30730,8124],
+["HL 920 x 784",784,996,437,40.9,73.9,24,997.7,103300,39.95,10.18,31980,37340,13730],
+["HL 920 x 967",967,1028,446,50,89.9,24,1231,133900,40.64,10.43,39540,46810,24930],
+["IPE A 100",6.9,98,55,3.6,4.7,7,8.78,13.12,4.01,1.22,28.81,32.98,0.77],
+["IPE 100",8.1,100,55,4.1,5.7,7,10.32,15.92,4.07,1.24,34.2,39.41,1.2],
+["IPE A 120",8.7,117.6,64,3.8,5.1,7,11.03,22.39,4.83,1.42,43.77,49.87,1.04],
+["IPE 120",10.4,120,64,4.4,6.3,7,13.21,27.67,4.9,1.45,52.96,60.73,1.74],
+["IPE A 140",10.5,137.4,73,3.8,5.6,7,13.39,36.42,5.7,1.65,63.3,71.6,1.36],
+["IPE 140",12.9,140,73,4.7,6.9,7,16.43,44.92,5.74,1.65,77.32,88.34,2.45],
+["IPE A 160",12.7,157,82,4,5.9,9,16.18,54.43,6.53,1.83,87.81,99.09,1.96],
+["IPE 160",15.8,160,82,5,7.4,9,20.09,68.31,6.58,1.84,108.7,123.9,3.6],
+["IPE A 180",15.4,177,91,4.3,6.5,9,19.58,81.89,7.37,2.05,120.1,135.3,2.7],
+["IPE 180",18.8,180,91,5.3,8,9,23.95,100.9,7.42,2.05,146.3,166.4,4.79],
+["IPE O 180",21.3,182,92,6,9,9,27.1,117.3,7.45,2.08,165.4,189.1,6.76],
+["IPE A 200",18.4,197,100,4.5,7,12,23.47,117.2,8.23,2.23,161.6,181.7,4.11],
+["IPE 200",22.4,200,100,5.6,8.5,12,28.48,142.4,8.26,2.24,194.3,220.6,6.98],
+["IPE O 200",25.1,202,102,6.2,9.5,12,31.96,168.9,8.32,2.3,218.9,249.4,9.45],
+["IPE A 220",22.2,217,110,5,7.7,12,28.26,171.4,9.05,2.46,213.5,240.2,5.69],
+["IPE 220",26.2,220,110,5.9,9.2,12,33.37,204.9,9.11,2.48,252,285.4,9.07],
+["IPE O 220",29.4,222,112,6.6,10.2,12,37.39,239.8,9.16,2.53,282.3,321.1,12.27],
+["IPE A 240",26.2,237,120,5.2,8.3,15,33.31,240.1,9.94,2.68,277.7,311.6,8.35],
+["IPE 240",30.7,240,120,6.2,9.8,15,39.12,283.6,9.97,2.69,324.3,366.6,12.88],
+["IPE O 240",34.3,242,122,7,10.8,15,43.71,328.5,10,2.74,361.1,410.3,17.18],
+["IPE A 270",30.7,267,135,5.5,8.7,15,39.15,358,11.21,3.02,368.3,412.5,10.3],
+["IPE 270",36.1,270,135,6.6,10.2,15,45.95,419.9,11.23,3.02,428.9,484,15.94],
+["IPE O 270",42.3,274,136,7.5,12.2,15,53.84,513.5,11.36,3.09,507.1,574.6,24.9],
+["IPE A 300",36.5,297,150,6.1,9.2,15,46.53,519,12.42,3.34,483.1,541.8,13.43],
+["IPE 300",42.2,300,150,7.1,10.7,15,53.81,603.8,12.46,3.35,557.1,628.4,20.12],
+["IPE O 300",49.3,304,152,8,12.7,15,62.83,745.7,12.61,3.45,657.5,743.8,31.06],
+["IPE A 330",43,327,160,6.5,10,18,54.74,685.2,13.67,3.54,625.7,701.9,19.57],
+["IPE 330",49.1,330,160,7.5,11.5,18,62.61,788.1,13.71,3.55,713.1,804.3,28.15],
+["IPE O 330",57,334,162,8.5,13.5,18,72.62,960.4,13.84,3.64,833,942.8,42.15],
+["IPE A 360",50.2,357.6,170,6.6,11.5,18,63.96,944.3,15.06,3.84,811.8,906.8,26.51],
+["IPE 360",57.1,360,170,8,12.7,18,72.73,1043,14.95,3.79,903.6,1019,37.32],
+["IPE O 360",66,364,172,9.2,14.7,18,84.13,1251,15.05,3.86,1047,1186,55.76],
+["IPE A 400",57.4,397,180,7,12,21,73.1,1171,16.66,4,1022,1144,34.79],
+["IPE 400",66.3,400,180,8.6,13.5,21,84.46,1318,16.55,3.95,1156,1307,51.08],
+["IPE O 400",75.7,404,182,9.7,15.5,21,96.39,1564,16.66,4.03,1324,1502,73.1],
+["IPE A 450",67.2,447,190,7.6,13.1,21,85.55,1502,18.65,4.19,1331,1494,45.67],
+["IPE 450",77.6,450,190,9.4,14.6,21,98.82,1676,18.48,4.12,1500,1702,66.87],
+["IPE O 450",92.4,456,192,11,17.6,21,117.7,2085,18.65,4.21,1795,2046,109],
+["IPE A 500",79.4,497,200,8.4,14.5,21,101.1,1939,20.61,4.38,1728,1946,62.78],
+["IPE 500",90.7,500,200,10.2,16,21,115.5,2142,20.43,4.31,1928,2194,89.29],
+["IPE O 500",107,506,202,12,19,21,136.7,2622,20.56,4.38,2284,2613,143.5],
+["IPE A 550",92.1,547,210,9,15.7,24,117.3,2432,22.61,4.55,2193,2475,86.53],
+["IPE 550",106,550,210,11.1,17.2,24,134.4,2668,22.35,4.45,2441,2787,123.2],
+["IPE O 550",123,556,212,12.7,20.2,24,156.1,3224,22.52,4.55,2847,3263,187.5],
+["IPE A 600",108,597,220,9.8,17.5,24,137,3116,24.6,4.77,2778,3141,118.8],
+["IPE 600",122,600,220,12,19,24,156,3387,24.3,4.66,3069,3512,165.4],
+["IPE O 600",154,610,224,15,24,24,196.8,4521,24.52,4.79,3879,4471,318.1],
+["IPE 750 x 147",147,753,265,13.2,17,17,187.5,5289,29.76,5.31,4411,5110,161.5],
+["IPE 750 x 173",173,762,267,14.4,21.6,17,221.3,6873,30.49,5.57,5402,6218,273.6],
+["IPE 750 x 196",196,770,268,15.6,25.4,17,250.8,8175,30.95,5.71,6241,7174,408.9]
+];
+
+// Build profile lookup map
+const PROFILES = {};
+PROF_RAW.forEach(r => {
+  PROFILES[r[0]] = {
+    name:r[0], G:r[1], h:r[2], b:r[3], tw:r[4], tf:r[5], r_fil:r[6],
+    A:r[7], Iz:r[8], iy:r[9], iz:r[10], Wely:r[11], Wply:r[12], It:r[13]
+  };
+});
+const PROF_NAMES = PROF_RAW.map(r=>r[0]);
+
+// ── UI INIT ───────────────────────────────────────────────────────────────────
+let currentSystem = 'V';
+let lastResults = null;
+
+function initSelects() {
+  ['iBraceVProfile','iBraceXProfile','iBeamProfile'].forEach(id => {
+    const sel = document.getElementById(id);
+    PROF_NAMES.forEach(n => {
+      const opt = document.createElement('option');
+      opt.value = n; opt.text = n;
+      sel.appendChild(opt);
+    });
+  });
+  document.getElementById('iBraceVProfile').value = 'HE 240 B';
+  document.getElementById('iBraceXProfile').value = 'HE 240 B';
+  document.getElementById('iBeamProfile').value = 'HE 900 B';
+}
+
+function setSystem(s) {
+  currentSystem = s;
+  document.getElementById('btnV').classList.toggle('active', s==='V');
+  document.getElementById('btnX').classList.toggle('active', s==='X');
+  document.getElementById('xBraceSection').style.display = s==='X' ? '' : 'none';
+  document.getElementById('braceVLabel').textContent = s==='V'
+    ? '② Brace Member — Chevron (V) · Highly Ductile [AISC 341-22 §F2.5b, Table D1.1]'
+    : '② Top Brace (Upper Diagonal) · Highly Ductile [AISC 341-22 §F2.5b, Table D1.1]';
+  document.getElementById('beamLabel').textContent = s==='V'
+    ? '④ Beam / Strut Member — Moderately Ductile [AISC 341-22 §F2.4b]'
+    : '⑤ Beam / Strut Member — Moderately Ductile [AISC 341-22 §F2.4b]';
+  document.getElementById('resultsCard').style.display = 'none';
+}
+
+function autoGeo() {
+  const L = +document.getElementById('iL').value;
+  const H = +document.getElementById('iH').value;
+  if (L>0 && H>0) {
+    const theta = Math.atan(H/(L/2)) * 180/Math.PI;
+    const Lbr = Math.sqrt((L/2)**2 + H**2);
+    document.getElementById('iTheta').value = theta.toFixed(2);
+    document.getElementById('iLbr').value = Lbr.toFixed(3);
+  }
+}
+
+// ── CALCULATIONS ──────────────────────────────────────────────────────────────
+function calcBrace(profile, grade, Pu, Tu, L, K, n_holes, dh) {
+  const p = PROFILES[profile];
+  const m = MAT[grade];
+  if (!p || !m) return null;
+
+  // CHECK 1 – Slenderness
+  const Lc = K * L;
+  const r_min = Math.min(p.iy, p.iz);
+  const KLr = Lc * 100 / r_min;
+
+  // CHECK 2 – Compactness (Highly Ductile)
+  const flange_act = p.b / (2 * p.tf);
+  const lhd_f = 0.30 * Math.sqrt(m.E / (m.Ry * m.Fy));
+  const hw = p.h - 2*p.tf - 2*p.r_fil;
+  const web_act = hw / p.tw;
+  const lhd_w = 2.57 * Math.sqrt(m.E / (m.Ry * m.Fy));
+
+  // CHECK 3 – Compression (AISC 360-22 §E3)
+  const lim_E3 = 4.71 * Math.sqrt(m.E / m.Fy);
+  const Fe = Math.PI**2 * m.E / KLr**2;
+  const Fcr = KLr <= lim_E3 ? (0.658**(m.Fy/Fe)) * m.Fy : 0.877 * Fe;
+  const Pn = Fcr * p.A * 100 / 1000;
+  const phicPn = 0.9 * Pn;
+
+  // CHECK 4 – Tension (AISC 360-22 §D)
+  const U_lag = 1.0;
+  const Pn_y = m.Fy * p.A * 100 / 1000;
+  const phi_Pn_y = 0.9 * Pn_y;
+  const hole_area = n_holes * dh * p.tf / 100;
+  const An = p.A - hole_area;
+  const Ae = U_lag * An;
+  const Pn_r = m.Fu * Ae * 100 / 1000;
+  const phi_Pn_r = 0.75 * Pn_r;
+  const phitPn = Math.min(phi_Pn_y, phi_Pn_r);
+
+  // Expected strengths for strut calcs [§F2.3]
+  const lim_hd_exp = 4.71 * Math.sqrt(m.E / (m.Ry * m.Fy));
+  const Fe_exp = Math.PI**2 * m.E / KLr**2;
+  const Fcre = KLr <= lim_hd_exp
+    ? (0.658**(m.Ry*m.Fy/Fe_exp)) * m.Ry * m.Fy
+    : 0.877 * Fe_exp;
+  const T_ET = m.Ry * m.Fy * p.A * 100 / 1000;
+  const C_EB_upper = Fcre * p.A * 100 / 1000 / 0.877;
+  const C_EB = Math.min(T_ET, C_EB_upper);
+  const C_EPB = 0.3 * C_EB;
+
+  return {
+    p, m, KLr, r_min, Lc,
+    flange_act, lhd_f, hw, web_act, lhd_w,
+    lim_E3, Fe, Fcr, Pn, phicPn, Pu,
+    Pn_y, phi_Pn_y, n_holes, dh, hole_area, An, Ae, Pn_r, phi_Pn_r, phitPn, Tu,
+    T_ET, Fcre, C_EB, C_EPB,
+    r1: KLr/200, ok1: KLr<=200,
+    r2a: flange_act/lhd_f, ok2a: flange_act<=lhd_f,
+    r2b: web_act/lhd_w, ok2b: web_act<=lhd_w,
+    r3: Pu/phicPn, ok3: Pu<=phicPn,
+    r4: Tu/phitPn, ok4: Tu<=phitPn
+  };
+}
+
+function calcStrut(beamProfile, beamGrade, L, theta_deg, wg, wq, ws, Lb, SDS, systemType, bTop, bBot) {
+  const p = PROFILES[beamProfile];
+  const m = MAT[beamGrade];
+  if (!p || !m) return null;
+  const theta = theta_deg * Math.PI / 180;
+
+  // Axial capacity §E3
+  const KLr_s = L * 100 / Math.min(p.iy, p.iz);
+  const lim_E3 = 4.71 * Math.sqrt(m.E / m.Fy);
+  const Fe_s = Math.PI**2 * m.E / KLr_s**2;
+  const Fcr_s = KLr_s <= lim_E3 ? (0.658**(m.Fy/Fe_s))*m.Fy : 0.877*Fe_s;
+  const Pn_s = Fcr_s * p.A * 100 / 1000;
+  const phicPn = 0.9 * Pn_s;
+
+  // Flexural capacity §F2
+  const Mp = m.Fy * p.Wply / 1000;
+  const Lp = 1.76 * p.iy / 100 * Math.sqrt(m.E / m.Fy);
+  const ho = p.h - p.tf;
+  const Jc_Sxho = p.It * 10000 / (p.Wely * 1000 * ho);
+  const rts = Math.sqrt(p.Iz * 5 * ho / p.Wely); // mm
+  const Lr = 1.95 * rts * (m.E/(0.7*m.Fy))
+    * Math.sqrt(Jc_Sxho + Math.sqrt(Jc_Sxho**2 + 6.76*(0.7*m.Fy/m.E)**2))
+    / 1000;
+
+  let Mn, ltb_zone;
+  if (Lb <= Lp) {
+    Mn = Mp; ltb_zone = 'No LTB (Lb ≤ Lp)';
+  } else if (Lb <= Lr) {
+    Mn = Math.max(0.7*m.Fy*p.Wely/1000,
+      Mp - (Mp - 0.7*m.Fy*p.Wely/1000)*(Lb-Lp)/(Lr-Lp));
+    ltb_zone = 'Inelastic LTB (Lp < Lb ≤ Lr)';
+  } else {
+    const term = Math.PI**2 * m.E / (Lb*1000/rts)**2
+      * Math.sqrt(1 + 0.078*Jc_Sxho*(Lb*1000/rts)**2)
+      * p.Wely / 1000;
+    Mn = Math.min(Mp, term);
+    ltb_zone = 'Elastic LTB (Lb > Lr)';
+  }
+  const phibMn = 0.9 * Mn;
+
+  // Shear capacity §G2.1
+  const hw_sh = p.h - 2*p.tf;
+  const shear_lim = 2.24 * Math.sqrt(m.E / m.Fy);
+  let phivVn;
+  if (hw_sh/p.tw <= shear_lim) {
+    phivVn = 1.0 * 0.6 * m.Fy * (p.h * p.tw) / 1000;
+  } else {
+    const Cv1 = Math.min(1, 1.51*m.E / ((hw_sh/p.tw)**2 * m.Fy));
+    phivVn = 0.9 * 0.6 * m.Fy * (p.h * p.tw) / 1000 * Cv1;
+  }
+
+  // Gravity moments/shears
+  const MG = wg * L**2 / 8;
+  const MQ = wq * L**2 / 8;
+  const MS = ws * L**2 / 8;
+  const load_factor = 1.2 + 0.2*SDS;
+
+  let Nu1, Nu2, Mu1, Mu2, Vu1, Vu2, Vub1, Vub2, ME1, ME2;
+
+  if (systemType === 'V') {
+    const {T_ET, C_EB, C_EPB} = bTop;
+    Vub1 = (T_ET - C_EB) * Math.sin(theta);
+    ME1  = Vub1 * L / 4;
+    Nu1  = (T_ET + C_EB) * Math.cos(theta) / 2;
+    Vub2 = (T_ET - C_EPB) * Math.sin(theta);
+    ME2  = Vub2 * L / 4;
+    Nu2  = (T_ET + C_EPB) * Math.cos(theta) / 2;
+    // Chevron VG: wg×L/2 + G/100
+    const VG = wg*L/2 + p.G/100;
+    const VQ = wq*L/2, VS = ws*L/2;
+    Mu1 = load_factor*MG + ME1 + MQ + 0.2*MS;
+    Vu1 = load_factor*VG + Vub1 + VQ + 0.2*VS;
+    Mu2 = load_factor*MG + ME2 + MQ + 0.2*MS;
+    Vu2 = load_factor*VG + Vub2 + VQ + 0.2*VS;
+  } else {
+    const {T_ET:TT, C_EB:CT, C_EPB:CPT} = bTop;
+    const {T_ET:TB, C_EB:CB, C_EPB:CPB} = bBot;
+    Vub1 = ((TT+CB)-(TB+CT))*Math.sin(theta);
+    ME1  = Vub1*L/4;
+    Nu1  = Math.abs(((TT+CB)-(TB+CT))*Math.cos(theta)/2);
+    Vub2 = ((TT+CPB)-(TB+CPT))*Math.sin(theta);
+    ME2  = Vub2*L/4;
+    Nu2  = Math.abs(((TT+CPB)-(TB+CPT))*Math.cos(theta)/2);
+    // X-brace VG: wg×L/2 + G×L/2/1000
+    const VG = wg*L/2 + p.G*L/2/1000;
+    const VQ = wq*L/2, VS = ws*L/2;
+    Mu1 = load_factor*MG + ME1 + MQ + 0.2*MS;
+    Vu1 = load_factor*VG + Vub1 + VQ + 0.2*VS;
+    Mu2 = load_factor*MG + ME2 + MQ + 0.2*MS;
+    Vu2 = load_factor*VG + Vub2 + VQ + 0.2*VS;
+  }
+
+  const Nu_g = Math.max(Math.abs(Nu1), Math.abs(Nu2));
+  const Mu_g = Math.max(Math.abs(Mu1), Math.abs(Mu2));
+  const Vu_g = Math.max(Math.abs(Vu1), Math.abs(Vu2));
+
+  const h11c1 = Math.abs(Nu1)/phicPn>=0.2
+    ? Math.abs(Nu1)/phicPn + 8/9*Math.abs(Mu1)/phibMn
+    : Math.abs(Nu1)/(2*phicPn) + Math.abs(Mu1)/phibMn;
+  const h11c2 = Math.abs(Nu2)/phicPn>=0.2
+    ? Math.abs(Nu2)/phicPn + 8/9*Math.abs(Mu2)/phibMn
+    : Math.abs(Nu2)/(2*phicPn) + Math.abs(Mu2)/phibMn;
+  const h11_gov = Math.max(h11c1, h11c2);
+
+  return {
+    p, m, KLr_s, lim_E3, Fe_s, Fcr_s, Pn_s, phicPn,
+    Mp, Lp, Lr, ltb_zone, Mn, phibMn, rts, ho, Jc_Sxho,
+    hw_sh, shear_lim, phivVn,
+    MG, MQ, MS, load_factor,
+    Vub1, Vub2, ME1, ME2, Nu1, Nu2, Mu1, Mu2, Vu1, Vu2,
+    Nu_g, Mu_g, Vu_g,
+    h11c1, h11c2, h11_gov,
+    rA: Nu_g/phicPn, okA: Nu_g<=phicPn,
+    rB: Mu_g/phibMn, okB: Mu_g<=phibMn,
+    rC: Vu_g/phivVn, okC: Vu_g<=phivVn,
+    rD: h11_gov,    okD: h11_gov<=1.0
+  };
+}
+
+// ── RUN & DISPLAY ─────────────────────────────────────────────────────────────
+function runCalc() {
+  const L      = +document.getElementById('iL').value;
+  const K      = +document.getElementById('iK').value;
+  const theta  = +document.getElementById('iTheta').value;
+  const Lbr    = +document.getElementById('iLbr').value;
+  const wg     = +document.getElementById('iWg').value;
+  const wq     = +document.getElementById('iWq').value;
+  const ws     = +document.getElementById('iWs').value;
+  const Lb     = +document.getElementById('iLb').value;
+  const SDS    = +document.getElementById('iSDS').value;
+
+  const bvPro  = document.getElementById('iBraceVProfile').value;
+  const bvGrd  = document.getElementById('iBraceVGrade').value;
+  const bvPu   = +document.getElementById('iBraceVPu').value;
+  const bvTu   = +document.getElementById('iBraceVTu').value;
+  const bvn    = +document.getElementById('iBraceVn').value;
+  const bvdh   = +document.getElementById('iBraceVdh').value;
+
+  const bxPro  = document.getElementById('iBraceXProfile').value;
+  const bxGrd  = document.getElementById('iBraceXGrade').value;
+  const bxPu   = +document.getElementById('iBraceXPu').value;
+  const bxTu   = +document.getElementById('iBraceXTu').value;
+  const bxn    = +document.getElementById('iBraceXn').value;
+  const bxdh   = +document.getElementById('iBraceXdh').value;
+
+  const bmPro  = document.getElementById('iBeamProfile').value;
+  const bmGrd  = document.getElementById('iBeamGrade').value;
+
+  const bV = calcBrace(bvPro, bvGrd, bvPu, bvTu, Lbr, K, bvn, bvdh);
+  const bX = currentSystem==='X' ? calcBrace(bxPro, bxGrd, bxPu, bxTu, Lbr, K, bxn, bxdh) : null;
+  const strut = calcStrut(bmPro, bmGrd, L, theta, wg, wq, ws, Lb, SDS, currentSystem, bV, bX);
+
+  lastResults = {currentSystem, L, K, theta, Lbr, wg, wq, ws, Lb, SDS,
+    bvPro, bvGrd, bvPu, bvTu, bvn, bvdh,
+    bxPro, bxGrd, bxPu, bxTu, bxn, bxdh,
+    bmPro, bmGrd, bV, bX, strut};
+
+  renderResults(bV, bX, strut);
+  document.getElementById('resultsCard').style.display = '';
+  document.getElementById('resultsCard').scrollIntoView({behavior:'smooth'});
+}
+
+function pct(r) { return (r*100).toFixed(1)+'%'; }
+function n2(v) { return isNaN(v)?'—':v.toFixed(2); }
+function n3(v) { return isNaN(v)?'—':v.toFixed(3); }
+function statusCell(ok, ratio) {
+  const r = Math.min(ratio, 1.5);
+  const cls = ratio<=0.8?'r-ok':ratio<=1.0?'r-warn':'r-fail';
+  const bar = `<div class="ratio-bar"><div class="ratio-fill ${cls}" style="width:${Math.min(r/1.5*100,100)}%"></div></div>`;
+  return `<td>${bar}</td><td>${pct(ratio)}</td><td class="${ok?'ok':'fail'}">${ok?'✓ OK':'✗ FAIL'}</td>`;
+}
+
+function braceRows(b, label) {
+  if (!b) return '';
+  return `
+  <tr class="section-row"><td colspan="7">${label} — Highly Ductile [AISC 341-22 §F2.5b, Table D1.1]</td></tr>
+  <tr><td>CHECK 1 — Slenderness &nbsp; KL/r ≤ 200</td><td>Brace</td><td>${n2(b.KLr)}</td><td>200.00</td><td>—</td>${statusCell(b.ok1,b.r1)}</tr>
+  <tr><td>CHECK 2a — Flange Compactness &nbsp; b/(2t<sub>f</sub>) ≤ λ<sub>hd</sub></td><td>Brace</td><td>${n2(b.flange_act)}</td><td>${n2(b.lhd_f)}</td><td>—</td>${statusCell(b.ok2a,b.r2a)}</tr>
+  <tr><td>CHECK 2b — Web Compactness &nbsp; h<sub>w</sub>/t<sub>w</sub> ≤ λ<sub>hd</sub></td><td>Brace</td><td>${n2(b.web_act)}</td><td>${n2(b.lhd_w)}</td><td>—</td>${statusCell(b.ok2b,b.r2b)}</tr>
+  <tr><td>CHECK 3 — Compression &nbsp; P<sub>u</sub>/φ<sub>c</sub>P<sub>n</sub> ≤ 1.0</td><td>Brace</td><td>${n2(b.Pu)}</td><td>${n2(b.phicPn)}</td><td>kN</td>${statusCell(b.ok3,b.r3)}</tr>
+  <tr><td>CHECK 4 — Tension &nbsp; T<sub>u</sub>/φ<sub>t</sub>P<sub>n</sub> ≤ 1.0</td><td>Brace</td><td>${n2(b.Tu)}</td><td>${n2(b.phitPn)}</td><td>kN</td>${statusCell(b.ok4,b.r4)}</tr>`;
+}
+
+function renderResults(bV, bX, s) {
+  const sys = currentSystem;
+  const pre = sys==='V' ? '5' : '6';
+  const sysLabel = sys==='V' ? 'Chevron Strut' : 'X-Brace Strut';
+  const html = `
+  <table class="results">
+  <thead><tr><th>Check Description</th><th>Type</th><th>Demand</th><th>Capacity</th><th>Unit</th><th style="min-width:80px">Utilization</th><th>Ratio</th><th>Status</th></tr></thead>
+  <tbody>
+  ${braceRows(bV, sys==='V'?'BRACE — Chevron (V)':'TOP BRACE — Upper Diagonal')}
+  ${sys==='X'?braceRows(bX,'BOTTOM BRACE — Lower Diagonal'):''}
+  <tr class="section-row"><td colspan="7">${sysLabel.toUpperCase()} — Capacity-Limited Seismic (E<sub>cl</sub>) [AISC 341-22 §F2.4b | AISC 360-22 §E3·F2·G2·H1]</td></tr>
+  <tr><td>CHECK ${pre}A — Axial &nbsp; N<sub>u</sub>/φ<sub>c</sub>P<sub>n</sub> ≤ 1.0</td><td>Strut</td><td>${n2(s.Nu_g)}</td><td>${n2(s.phicPn)}</td><td>kN</td>${statusCell(s.okA,s.rA)}</tr>
+  <tr><td>CHECK ${pre}B — Flexure &nbsp; M<sub>u</sub>/φ<sub>b</sub>M<sub>n</sub> ≤ 1.0</td><td>Strut</td><td>${n2(s.Mu_g)}</td><td>${n2(s.phibMn)}</td><td>kN·m</td>${statusCell(s.okB,s.rB)}</tr>
+  <tr><td>CHECK ${pre}C — Shear &nbsp; V<sub>u</sub>/φ<sub>v</sub>V<sub>n</sub> ≤ 1.0</td><td>Strut</td><td>${n2(s.Vu_g)}</td><td>${n2(s.phivVn)}</td><td>kN</td>${statusCell(s.okC,s.rC)}</tr>
+  <tr><td>CHECK ${pre}D — H1-1 Combined &nbsp; N<sub>u</sub>/φ<sub>c</sub>P<sub>n</sub> + 8/9·M<sub>u</sub>/φ<sub>b</sub>M<sub>n</sub> ≤ 1.0</td><td>Strut</td><td colspan="2">(Case 1: ${pct(s.h11c1)}, Case 2: ${pct(s.h11c2)})</td><td>—</td>${statusCell(s.okD,s.rD)}</tr>
+  </tbody></table>`;
+  document.getElementById('resultsTable').innerHTML = html;
+}
+
+// ── REPORT ────────────────────────────────────────────────────────────────────
+function row(lbl, val, unit) {
+  return `<div class="rpt-row"><span class="rpt-label">${lbl}</span><span class="rpt-val">${val}${unit?' <span style="color:#888;font-weight:400">'+unit+'</span>':''}</span></div>`;
+}
+function formula(f) { return `<div class="formula">${f}</div>`; }
+function statusBadge(ok, ratio) {
+  return `<span class="${ok?'ok':'fail'}">${ok?'✓ OK':'✗ FAIL'}</span> &nbsp; ${pct(ratio)}`;
+}
+
+function braceReport(b, title) {
+  if (!b) return '';
+  const p=b.p, m=b.m;
+  return `
+  <h2>${title}</h2>
+  <h3>Section &amp; Material Properties</h3>
+  ${row('Profile',p.name,'')} ${row('Steel Grade',`F<sub>y</sub>=${m.Fy} MPa, F<sub>u</sub>=${m.Fu} MPa, E=${m.E} MPa, R<sub>y</sub>=${m.Ry}`,'')}
+  ${row('A<sub>g</sub>',n2(p.A),'cm²')} ${row('i<sub>y</sub>',n2(p.iy),'cm')} ${row('i<sub>z</sub>',n2(p.iz),'cm')}
+  ${row('h',p.h,'mm')} ${row('b',p.b,'mm')} ${row('t<sub>w</sub>',p.tw,'mm')} ${row('t<sub>f</sub>',p.tf,'mm')} ${row('r',p.r_fil,'mm')}
+
+  <h3>CHECK 1 — Slenderness KL/r ≤ 200 &nbsp; [AISC 341-22 §F2.5b(a)]</h3>
+  ${formula(`L<sub>c</sub> = K × L<sub>br</sub> = ${n2(b.Lc)} m`)}
+  ${formula(`r<sub>min</sub> = min(i<sub>y</sub>, i<sub>z</sub>) = min(${n2(p.iy)}, ${n2(p.iz)}) = ${n2(b.r_min)} cm`)}
+  ${formula(`KL/r = L<sub>c</sub>(m)×100 / r(cm) = ${n2(b.Lc)}×100 / ${n2(b.r_min)} = <b>${n2(b.KLr)}</b>`)}
+  ${row('Code limit',200,'')} ${row('Status',statusBadge(b.ok1,b.r1),'')}
+
+  <h3>CHECK 2a — Flange Compactness b/(2t<sub>f</sub>) ≤ λ<sub>hd</sub> &nbsp; [Table D1.1]</h3>
+  ${formula(`b/(2t<sub>f</sub>) = ${p.b}/(2×${p.tf}) = <b>${n2(b.flange_act)}</b>`)}
+  ${formula(`λ<sub>hd</sub> = 0.30√(E/R<sub>y</sub>F<sub>y</sub>) = 0.30√(${m.E}/${m.Ry}×${m.Fy}) = <b>${n2(b.lhd_f)}</b>`)}
+  ${row('Status',statusBadge(b.ok2a,b.r2a),'')}
+
+  <h3>CHECK 2b — Web Compactness h<sub>w</sub>/t<sub>w</sub> ≤ λ<sub>hd</sub> &nbsp; [Table D1.1]</h3>
+  ${formula(`h<sub>w</sub> = h − 2t<sub>f</sub> − 2r = ${p.h} − 2×${p.tf} − 2×${p.r_fil} = ${n2(b.hw)} mm`)}
+  ${formula(`h<sub>w</sub>/t<sub>w</sub> = ${n2(b.hw)}/${p.tw} = <b>${n2(b.web_act)}</b>`)}
+  ${formula(`λ<sub>hd</sub> = 2.57√(E/R<sub>y</sub>F<sub>y</sub>) = <b>${n2(b.lhd_w)}</b>`)}
+  ${row('Status',statusBadge(b.ok2b,b.r2b),'')}
+
+  <h3>CHECK 3 — Compression φ<sub>c</sub>P<sub>n</sub> &nbsp; [AISC 360-22 §E3]</h3>
+  ${formula(`4.71√(E/F<sub>y</sub>) = 4.71√(${m.E}/${m.Fy}) = ${n2(b.lim_E3)}`)}
+  ${formula(`F<sub>e</sub> = π²E/(KL/r)² = π²×${m.E}/${n2(b.KLr)}² = ${n2(b.Fe)} MPa &nbsp; [Eq. E3-4]`)}
+  ${formula(`F<sub>cr</sub> = [0.658^(F<sub>y</sub>/F<sub>e</sub>)]×F<sub>y</sub> = <b>${n2(b.Fcr)} MPa</b> &nbsp; [Eq. E3-2, Inelastic]`)}
+  ${formula(`P<sub>n</sub> = F<sub>cr</sub>×A<sub>g</sub> = ${n2(b.Fcr)}×${n2(p.A)}×100/1000 = ${n2(b.Pn)} kN`)}
+  ${formula(`φ<sub>c</sub>P<sub>n</sub> = 0.90×${n2(b.Pn)} = <b>${n2(b.phicPn)} kN</b>`)}
+  ${row('Demand P<sub>u</sub>',n2(b.Pu),'kN')} ${row('Status',statusBadge(b.ok3,b.r3),'')}
+
+  <h3>CHECK 4 — Tension φ<sub>t</sub>P<sub>n</sub> &nbsp; [AISC 360-22 §D]</h3>
+  ${formula(`P<sub>n,y</sub> = F<sub>y</sub>×A<sub>g</sub> = ${m.Fy}×${n2(p.A)}×100/1000 = ${n2(b.Pn_y)} kN`)}
+  ${formula(`φ<sub>t</sub>P<sub>n,y</sub> = 0.90×${n2(b.Pn_y)} = ${n2(b.phi_Pn_y)} kN &nbsp; [Yielding, Eq. D2-1]`)}
+  ${formula(`Δ<sub>holes</sub> = n×d<sub>h</sub>×t<sub>f</sub>/100 = ${b.n_holes}×${b.dh}×${p.tf}/100 = ${n2(b.hole_area)} cm²`)}
+  ${formula(`A<sub>n</sub> = A<sub>g</sub> − Δ = ${n2(p.A)} − ${n2(b.hole_area)} = ${n2(b.An)} cm²`)}
+  ${formula(`A<sub>e</sub> = U×A<sub>n</sub> = 1.0×${n2(b.An)} = ${n2(b.Ae)} cm²`)}
+  ${formula(`P<sub>n,r</sub> = F<sub>u</sub>×A<sub>e</sub> = ${m.Fu}×${n2(b.Ae)}×100/1000 = ${n2(b.Pn_r)} kN`)}
+  ${formula(`φ<sub>t</sub>P<sub>n,r</sub> = 0.75×${n2(b.Pn_r)} = ${n2(b.phi_Pn_r)} kN &nbsp; [Rupture, Eq. D2-2]`)}
+  ${formula(`φ<sub>t</sub>P<sub>n</sub> = min(${n2(b.phi_Pn_y)}, ${n2(b.phi_Pn_r)}) = <b>${n2(b.phitPn)} kN</b>`)}
+  ${row('Demand T<sub>u</sub>',n2(b.Tu),'kN')} ${row('Status',statusBadge(b.ok4,b.r4),'')}
+
+  <h3>Expected Strengths [AISC 341-22 §F2.3]</h3>
+  ${formula(`F<sub>cre</sub> (using R<sub>y</sub>F<sub>y</sub> = ${m.Ry*m.Fy} MPa) = <b>${n2(b.Fcre)} MPa</b>`)}
+  ${formula(`T<sub>ET</sub> = R<sub>y</sub>F<sub>y</sub>A<sub>g</sub> = ${m.Ry}×${m.Fy}×${n2(p.A)}×100/1000 = <b>${n2(b.T_ET)} kN</b>`)}
+  ${formula(`C<sub>EB</sub> = min(T<sub>ET</sub>, F<sub>cre</sub>A<sub>g</sub>/0.877) = <b>${n2(b.C_EB)} kN</b>`)}
+  ${formula(`C<sub>EPB</sub> = 0.3×C<sub>EB</sub> = <b>${n2(b.C_EPB)} kN</b>`)}`;
+}
+
+function showReport() {
+  const res = lastResults;
+  if (!res) return;
+  const {bV, bX, strut: s, currentSystem:sys} = res;
+  const sysName = sys==='V' ? 'V-Brace (Chevron)' : 'X-Brace';
+  const pre = sys==='V'?'5':'6';
+
+  const content = `
+  <h1>SCBF Member Check — Calculation Report</h1>
+  <p style="margin-bottom:4px;color:#555;font-size:11px">AISC 341-22 · AISC 360-22 · System: <b>${sysName}</b> &nbsp;|&nbsp; Generated: ${new Date().toLocaleString()}</p>
+
+  <h2>Frame Geometry</h2>
+  ${row('Beam Span L',res.L,'m')}
+  ${row('Brace Length L<sub>br</sub>',n3(res.Lbr),'m')}
+  ${row('Brace Angle θ',n2(res.theta),'deg')}
+  ${row('Effective Length Factor K',res.K,'')}
+
+  ${braceReport(bV, sys==='V'?'BRACE — Chevron (V)  [AISC 341-22 §F2.5b]':'TOP BRACE — Upper Diagonal  [AISC 341-22 §F2.5b]')}
+  ${sys==='X' ? braceReport(bX, 'BOTTOM BRACE — Lower Diagonal  [AISC 341-22 §F2.5b]') : ''}
+
+  <h2>${sys==='V'?'CHEVRON':'X-BRACE'} STRUT BEAM — AISC 341-22 §F2.4b | AISC 360-22 §E3·F2·G2·H1</h2>
+  <h3>Section &amp; Material</h3>
+  ${row('Profile',s.p.name,'')}
+  ${row('Grade',`F<sub>y</sub>=${s.m.Fy} MPa, F<sub>u</sub>=${s.m.Fu} MPa, R<sub>y</sub>=${s.m.Ry}`,'')}
+  ${row('A<sub>g</sub>',n2(s.p.A),'cm²')} ${row('h',s.p.h,'mm')} ${row('t<sub>w</sub>',s.p.tw,'mm')} ${row('t<sub>f</sub>',s.p.tf,'mm')}
+  ${row('W<sub>pl,y</sub> (Z<sub>x</sub>)',n2(s.p.Wply),'cm³')} ${row('W<sub>el,y</sub> (S<sub>x</sub>)',n2(s.p.Wely),'cm³')}
+  ${row('I<sub>z</sub>',n2(s.p.Iz),'cm⁴')} ${row('I<sub>t</sub> (J)',n2(s.p.It),'cm⁴')}
+
+  <h3>Axial Capacity — φ<sub>c</sub>P<sub>n</sub> [§E3, K=1, L=span]</h3>
+  ${formula(`KL/r = ${res.L}×100/min(${n2(s.p.iy)},${n2(s.p.iz)}) = <b>${n2(s.KLr_s)}</b>`)}
+  ${formula(`4.71√(E/F<sub>y</sub>) = ${n2(s.lim_E3)}`)}
+  ${formula(`F<sub>e</sub> = π²×${s.m.E}/${n2(s.KLr_s)}² = ${n2(s.Fe_s)} MPa`)}
+  ${formula(`F<sub>cr</sub> = <b>${n2(s.Fcr_s)} MPa</b>`)}
+  ${formula(`φ<sub>c</sub>P<sub>n</sub> = 0.90×${n2(s.Fcr_s)}×${n2(s.p.A)}×100/1000 = <b>${n2(s.phicPn)} kN</b>`)}
+
+  <h3>Flexural Capacity — φ<sub>b</sub>M<sub>n</sub> [§F2, Cb=1.0]</h3>
+  ${formula(`M<sub>p</sub> = F<sub>y</sub>×W<sub>pl,y</sub>/1000 = ${s.m.Fy}×${n2(s.p.Wply)}/1000 = ${n2(s.Mp)} kN·m`)}
+  ${formula(`L<sub>p</sub> = 1.76×i<sub>y</sub>/100×√(E/F<sub>y</sub>) = <b>${n3(s.Lp)} m</b>`)}
+  ${formula(`r<sub>ts</sub> = √(I<sub>z</sub>×5×h<sub>o</sub>/W<sub>el,y</sub>) = ${n2(s.rts)} mm`)}
+  ${formula(`L<sub>r</sub> = <b>${n3(s.Lr)} m</b> &nbsp; L<sub>b</sub> = ${res.Lb} m`)}
+  ${formula(`LTB Zone: <b>${s.ltb_zone}</b>`)}
+  ${formula(`M<sub>n</sub> = ${n2(s.Mn)} kN·m`)}
+  ${formula(`φ<sub>b</sub>M<sub>n</sub> = 0.90×${n2(s.Mn)} = <b>${n2(s.phibMn)} kN·m</b>`)}
+
+  <h3>Shear Capacity — φ<sub>v</sub>V<sub>n</sub> [§G2.1]</h3>
+  ${formula(`h<sub>w</sub>/t<sub>w</sub> = (h−2t<sub>f</sub>)/t<sub>w</sub> = ${n2(s.hw_sh)}/${s.p.tw} = ${n2(s.hw_sh/s.p.tw)}`)}
+  ${formula(`2.24√(E/F<sub>y</sub>) = ${n2(s.shear_lim)}&nbsp; → &nbsp;φ<sub>v</sub> = ${s.hw_sh/s.p.tw<=s.shear_lim?'1.0':'0.9'}`)}
+  ${formula(`φ<sub>v</sub>V<sub>n</sub> = ${s.hw_sh/s.p.tw<=s.shear_lim?'1.0':'0.9'}×0.6×${s.m.Fy}×(${s.p.h}×${s.p.tw})/1000 = <b>${n2(s.phivVn)} kN</b>`)}
+
+  <h3>Seismic Demands [AISC 341-22 §F2.4b — E<sub>cl</sub> Analysis]</h3>
+  ${formula(`Gravity: M<sub>G</sub> = w<sub>g</sub>L²/8 = ${res.wg}×${res.L}²/8 = ${n2(s.MG)} kN·m`)}
+  ${formula(`Case 1: V<sub>ub,1</sub> = ${n2(s.Vub1)} kN &nbsp;|&nbsp; M<sub>E,1</sub> = ${n2(s.ME1)} kN·m &nbsp;|&nbsp; N<sub>u,1</sub> = ${n2(s.Nu1)} kN`)}
+  ${formula(`Case 2: V<sub>ub,2</sub> = ${n2(s.Vub2)} kN &nbsp;|&nbsp; M<sub>E,2</sub> = ${n2(s.ME2)} kN·m &nbsp;|&nbsp; N<sub>u,2</sub> = ${n2(s.Nu2)} kN`)}
+  ${formula(`LRFD Comb. (1.2+0.2×S<sub>DS</sub>=<b>${n2(s.load_factor)}</b>):`)}
+  ${formula(`&nbsp; M<sub>u,1</sub> = ${n2(s.Mu1)} kN·m &nbsp; V<sub>u,1</sub> = ${n2(s.Vu1)} kN`)}
+  ${formula(`&nbsp; M<sub>u,2</sub> = ${n2(s.Mu2)} kN·m &nbsp; V<sub>u,2</sub> = ${n2(s.Vu2)} kN`)}
+  ${formula(`Governing: N<sub>u</sub> = ${n2(s.Nu_g)} kN &nbsp; M<sub>u</sub> = ${n2(s.Mu_g)} kN·m &nbsp; V<sub>u</sub> = ${n2(s.Vu_g)} kN`)}
+
+  <h3>CHECK ${pre}A — Axial</h3>
+  ${formula(`N<sub>u</sub>/φ<sub>c</sub>P<sub>n</sub> = ${n2(s.Nu_g)}/${n2(s.phicPn)} = ${pct(s.rA)}`)}
+  ${row('Status',statusBadge(s.okA,s.rA),'')}
+
+  <h3>CHECK ${pre}B — Flexure</h3>
+  ${formula(`M<sub>u</sub>/φ<sub>b</sub>M<sub>n</sub> = ${n2(s.Mu_g)}/${n2(s.phibMn)} = ${pct(s.rB)}`)}
+  ${row('Status',statusBadge(s.okB,s.rB),'')}
+
+  <h3>CHECK ${pre}C — Shear</h3>
+  ${formula(`V<sub>u</sub>/φ<sub>v</sub>V<sub>n</sub> = ${n2(s.Vu_g)}/${n2(s.phivVn)} = ${pct(s.rC)}`)}
+  ${row('Status',statusBadge(s.okC,s.rC),'')}
+
+  <h3>CHECK ${pre}D — H1-1 Combined Axial + Flexure [§H1.1]</h3>
+  ${formula(`Case 1: N<sub>u</sub>/φ<sub>c</sub>P<sub>n</sub>=<b>${pct(Math.abs(s.Nu1)/s.phicPn)}</b> ${Math.abs(s.Nu1)/s.phicPn>=0.2?'≥0.2 → H1-1a':'<0.2 → H1-1b'} = <b>${pct(s.h11c1)}</b>`)}
+  ${formula(`Case 2: N<sub>u</sub>/φ<sub>c</sub>P<sub>n</sub>=<b>${pct(Math.abs(s.Nu2)/s.phicPn)}</b> ${Math.abs(s.Nu2)/s.phicPn>=0.2?'≥0.2 → H1-1a':'<0.2 → H1-1b'} = <b>${pct(s.h11c2)}</b>`)}
+  ${formula(`Governing H1-1 = max(${pct(s.h11c1)}, ${pct(s.h11c2)}) = <b>${pct(s.h11_gov)}</b>`)}
+  ${row('Status',statusBadge(s.okD,s.rD),'')}
+
+  <h2>SUMMARY — All Checks</h2>
+  <table>
+  <thead><tr><th>Check</th><th>Member</th><th>Demand</th><th>Capacity</th><th>Unit</th><th>Ratio</th><th>Status</th></tr></thead>
+  <tbody>
+  <tr><td>1 — Slenderness KL/r ≤ 200</td><td>Brace</td><td>${n2(bV.KLr)}</td><td>200</td><td>—</td><td>${pct(bV.r1)}</td><td class="${bV.ok1?'ok':'fail'}">${bV.ok1?'✓ OK':'✗ FAIL'}</td></tr>
+  <tr><td>2a — Flange Compactness</td><td>Brace</td><td>${n2(bV.flange_act)}</td><td>${n2(bV.lhd_f)}</td><td>—</td><td>${pct(bV.r2a)}</td><td class="${bV.ok2a?'ok':'fail'}">${bV.ok2a?'✓ OK':'✗ FAIL'}</td></tr>
+  <tr><td>2b — Web Compactness</td><td>Brace</td><td>${n2(bV.web_act)}</td><td>${n2(bV.lhd_w)}</td><td>—</td><td>${pct(bV.r2b)}</td><td class="${bV.ok2b?'ok':'fail'}">${bV.ok2b?'✓ OK':'✗ FAIL'}</td></tr>
+  <tr><td>3 — Compression</td><td>Brace</td><td>${n2(bV.Pu)}</td><td>${n2(bV.phicPn)}</td><td>kN</td><td>${pct(bV.r3)}</td><td class="${bV.ok3?'ok':'fail'}">${bV.ok3?'✓ OK':'✗ FAIL'}</td></tr>
+  <tr><td>4 — Tension</td><td>Brace</td><td>${n2(bV.Tu)}</td><td>${n2(bV.phitPn)}</td><td>kN</td><td>${pct(bV.r4)}</td><td class="${bV.ok4?'ok':'fail'}">${bV.ok4?'✓ OK':'✗ FAIL'}</td></tr>
+  ${bX?`
+  <tr><td>1X — Slenderness (Bottom)</td><td>Brace</td><td>${n2(bX.KLr)}</td><td>200</td><td>—</td><td>${pct(bX.r1)}</td><td class="${bX.ok1?'ok':'fail'}">${bX.ok1?'✓ OK':'✗ FAIL'}</td></tr>
+  <tr><td>2aX — Flange (Bottom)</td><td>Brace</td><td>${n2(bX.flange_act)}</td><td>${n2(bX.lhd_f)}</td><td>—</td><td>${pct(bX.r2a)}</td><td class="${bX.ok2a?'ok':'fail'}">${bX.ok2a?'✓ OK':'✗ FAIL'}</td></tr>
+  <tr><td>2bX — Web (Bottom)</td><td>Brace</td><td>${n2(bX.web_act)}</td><td>${n2(bX.lhd_w)}</td><td>—</td><td>${pct(bX.r2b)}</td><td class="${bX.ok2b?'ok':'fail'}">${bX.ok2b?'✓ OK':'✗ FAIL'}</td></tr>
+  <tr><td>3X — Compression (Bottom)</td><td>Brace</td><td>${n2(bX.Pu)}</td><td>${n2(bX.phicPn)}</td><td>kN</td><td>${pct(bX.r3)}</td><td class="${bX.ok3?'ok':'fail'}">${bX.ok3?'✓ OK':'✗ FAIL'}</td></tr>
+  <tr><td>4X — Tension (Bottom)</td><td>Brace</td><td>${n2(bX.Tu)}</td><td>${n2(bX.phitPn)}</td><td>kN</td><td>${pct(bX.r4)}</td><td class="${bX.ok4?'ok':'fail'}">${bX.ok4?'✓ OK':'✗ FAIL'}</td></tr>`:''}
+  <tr><td>${pre}A — Strut Axial</td><td>Strut</td><td>${n2(s.Nu_g)}</td><td>${n2(s.phicPn)}</td><td>kN</td><td>${pct(s.rA)}</td><td class="${s.okA?'ok':'fail'}">${s.okA?'✓ OK':'✗ FAIL'}</td></tr>
+  <tr><td>${pre}B — Strut Flexure</td><td>Strut</td><td>${n2(s.Mu_g)}</td><td>${n2(s.phibMn)}</td><td>kN·m</td><td>${pct(s.rB)}</td><td class="${s.okB?'ok':'fail'}">${s.okB?'✓ OK':'✗ FAIL'}</td></tr>
+  <tr><td>${pre}C — Strut Shear</td><td>Strut</td><td>${n2(s.Vu_g)}</td><td>${n2(s.phivVn)}</td><td>kN</td><td>${pct(s.rC)}</td><td class="${s.okC?'ok':'fail'}">${s.okC?'✓ OK':'✗ FAIL'}</td></tr>
+  <tr><td>${pre}D — H1-1 Interaction</td><td>Strut</td><td colspan="2">gov. = ${pct(s.rD)}</td><td>—</td><td>${pct(s.rD)}</td><td class="${s.okD?'ok':'fail'}">${s.okD?'✓ OK':'✗ FAIL'}</td></tr>
+  </tbody></table>`;
+
+  document.getElementById('reportContent').innerHTML = content;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('report').classList.add('visible');
+  window.scrollTo(0,0);
+}
+
+function hideReport() {
+  document.getElementById('report').classList.remove('visible');
+  document.getElementById('app').style.display = '';
+}
+
+// ── STARTUP ───────────────────────────────────────────────────────────────────
+initPinGate();
+initSelects();
+setSystem('V');
+autoGeo();
+</script>
+</body>
+</html>
+
