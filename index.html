@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -86,6 +86,9 @@ table.results tr:nth-child(even) td{background:#f8f9fb}
 .pin-box button{width:100%;padding:10px;background:#1a3a6b;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer}
 .pin-box button:hover{background:#2453a3}
 .pin-box .pin-err{color:#c62828;font-size:12px;margin-top:8px;min-height:18px}
+#vizCard{background:#fff;border-radius:6px;border:1px solid #d0d7e3;padding:14px 16px;margin-bottom:12px}
+#vizCard h2{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#1a3a6b;border-bottom:2px solid #1a3a6b;padding-bottom:5px;margin-bottom:10px}
+#frameSvg{background:#fafbfc;border:1px solid #e0e5ed;border-radius:4px;min-height:120px}
 </style>
 </head>
 <body>
@@ -119,35 +122,38 @@ table.results tr:nth-child(even) td{background:#f8f9fb}
     </div>
   </div>
 
+  <!-- Frame Visualization -->
+  <div id="vizCard">
+    <h2>Frame Visualization — Schematic Elevation</h2>
+    <div id="frameSvg"></div>
+  </div>
+
   <!-- STEP 2: Inputs -->
   <div class="card">
     <h2>Step 2 — Input Parameters</h2>
 
     <!-- Frame Geometry -->
     <h3>① Frame Geometry</h3>
-    <div class="grid3">
+    <div class="grid2" style="max-width:520px">
       <div class="field">
         <label>Beam Span L [m]</label>
         <input type="number" id="iL" value="6.0" step="0.1" oninput="autoGeo()">
       </div>
       <div class="field">
-        <label>Story Height H [m]</label>
+        <label id="lblH">Story Height H [m]</label>
         <input type="number" id="iH" value="3.0" step="0.1" oninput="autoGeo()">
+      </div>
+      <div class="field" id="h2field" style="display:none">
+        <label>Story 2 Height H₂ [m]</label>
+        <input type="number" id="iH2" value="3.0" step="0.1" oninput="drawFrame()">
       </div>
       <div class="field">
         <label>Eff. Length Factor K</label>
         <input type="number" id="iK" value="1.0" step="0.05">
       </div>
-      <div class="field">
-        <label>Brace Angle θ [deg]</label>
-        <input type="number" id="iTheta" value="45.0" step="0.1" readonly style="background:#f0f4fa">
-        <span class="auto-note">Auto: arctan(H/(L/2))</span>
-      </div>
-      <div class="field">
-        <label>Brace Length L<sub>br</sub> [m]</label>
-        <input type="number" id="iLbr" value="4.243" step="0.001" readonly style="background:#f0f4fa">
-        <span class="auto-note">Auto: √((L/2)²+H²)</span>
-      </div>
+    </div>
+    <div style="font-size:10px;color:#3a7bd5;margin-top:4px">
+      θ &amp; L<sub>br</sub> computed automatically from geometry — see visual
     </div>
 
     <!-- Brace (V) -->
@@ -502,6 +508,8 @@ const PROF_NAMES = PROF_RAW.map(r=>r[0]);
 // ── UI INIT ───────────────────────────────────────────────────────────────────
 let currentSystem = 'V';
 let lastResults = null;
+let computedTheta = 45.0;
+let computedLbr = 4.243;
 
 function initSelects() {
   ['iBraceVProfile','iBraceXProfile','iBeamProfile'].forEach(id => {
@@ -529,17 +537,190 @@ function setSystem(s) {
     ? '④ Beam / Strut Member — Moderately Ductile [AISC 341-22 §F2.4b]'
     : '⑤ Beam / Strut Member — Moderately Ductile [AISC 341-22 §F2.4b]';
   document.getElementById('resultsCard').style.display = 'none';
+  const isX = s === 'X';
+  document.getElementById('h2field').style.display = isX ? '' : 'none';
+  document.getElementById('lblH').textContent = isX ? 'Story 1 Height H₁ [m]' : 'Story Height H [m]';
+  drawFrame();
 }
 
 function autoGeo() {
   const L = +document.getElementById('iL').value;
   const H = +document.getElementById('iH').value;
-  if (L>0 && H>0) {
-    const theta = Math.atan(H/(L/2)) * 180/Math.PI;
-    const Lbr = Math.sqrt((L/2)**2 + H**2);
-    document.getElementById('iTheta').value = theta.toFixed(2);
-    document.getElementById('iLbr').value = Lbr.toFixed(3);
+  if (L > 0 && H > 0) {
+    computedTheta = Math.atan(H / (L / 2)) * 180 / Math.PI;
+    computedLbr   = Math.sqrt((L / 2) ** 2 + H ** 2);
   }
+  drawFrame();
+}
+
+// ── FRAME VISUALIZATION ───────────────────────────────────────────────────────
+function drawFrame() {
+  const el = document.getElementById('frameSvg');
+  if (!el) return;
+  const L   = parseFloat(document.getElementById('iL').value)  || 6;
+  const H   = parseFloat(document.getElementById('iH').value)  || 3;   // H1 for X
+  const iH2 = document.getElementById('iH2');
+  const H2  = (currentSystem === 'X' && iH2) ? (parseFloat(iH2.value) || 3) : H;
+  const sys = currentSystem;
+
+  const LM = 92, RM = 58, TM = 90, BM = 70;
+  const BAY = 340, maxFH = 480;
+
+  // Pixel story heights — preserve real aspect ratio, cap total
+  let sH1 = Math.round(BAY * H  / L);
+  let sH2 = Math.round(BAY * H2 / L);
+  if (sys === 'V') {
+    sH1 = Math.max(70, Math.min(maxFH, sH1));
+    sH2 = 0;
+  } else {
+    const tot = sH1 + sH2;
+    if (tot > maxFH) { const sc = maxFH / tot; sH1 = Math.round(sH1 * sc); sH2 = Math.round(sH2 * sc); }
+    sH1 = Math.max(55, sH1);
+    sH2 = Math.max(55, sH2);
+  }
+
+  const FH = sH1 + sH2;
+  const SW = LM + BAY + RM, SH = TM + FH + BM;
+  const x0 = LM, x1 = LM + BAY, xm = LM + BAY / 2;
+  const yBase = TM + FH;          // ground (y increases down)
+  const yRoof = TM;               // top beam
+  const yFlr1 = yBase - sH1;     // intermediate floor (X only)
+
+  const CW = 10, BH = 8, BRW = 2.5;
+  const CS = '#1c1c1c', CB = '#2e2e2e', CD = '#555', CLV = '#444', CLH = '#555';
+  const e = [];
+
+  // ── defs ──
+  e.push(`<defs>
+    <marker id="av" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><polygon points="0,0 6,3.5 0,7" fill="${CLV}"/></marker>
+    <marker id="ah" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><polygon points="0,0 6,3.5 0,7" fill="${CLH}"/></marker>
+  </defs>`);
+
+  e.push(`<rect x="0" y="0" width="${SW}" height="${SH}" fill="#f8f8f8" rx="4"/>`);
+
+  // ── title ──
+  const sysLabel = sys === 'V' ? 'Chevron (Inverted-V) Brace' : 'X-Brace';
+  e.push(`<text x="${xm}" y="${TM-54}" text-anchor="middle" font-size="12" font-weight="bold" fill="#222" font-family="Arial,sans-serif">${sys==='V'?'1':'2'}-Story SCBF — ${sysLabel}</text>`);
+  e.push(`<text x="${xm}" y="${TM-38}" text-anchor="middle" font-size="10" fill="#888" font-family="Arial,sans-serif">Schematic elevation · one braced bay</text>`);
+
+  // ── ground ──
+  e.push(`<line x1="${x0-26}" y1="${yBase}" x2="${x1+26}" y2="${yBase}" stroke="#444" stroke-width="2.5"/>`);
+  for (let xi = x0-22; xi <= x1+22; xi += 12)
+    e.push(`<line x1="${xi}" y1="${yBase}" x2="${xi-9}" y2="${yBase+11}" stroke="#999" stroke-width="1.2"/>`);
+
+  // ── base plates ──
+  e.push(`<rect x="${x0-15}" y="${yBase}" width="30" height="6" fill="#666" rx="1"/>`);
+  e.push(`<rect x="${x1-15}" y="${yBase}" width="30" height="6" fill="#666" rx="1"/>`);
+
+  // ── braces (before columns so columns overlay) ──
+  if (sys === 'V') {
+    e.push(`<line x1="${x0}" y1="${yBase}" x2="${xm}" y2="${yRoof}" stroke="${CB}" stroke-width="${BRW}" stroke-linecap="round"/>`);
+    e.push(`<line x1="${x1}" y1="${yBase}" x2="${xm}" y2="${yRoof}" stroke="${CB}" stroke-width="${BRW}" stroke-linecap="round"/>`);
+  } else {
+    // Story 1: base columns → FL1 midpoint
+    e.push(`<line x1="${x0}" y1="${yBase}" x2="${xm}" y2="${yFlr1}" stroke="${CB}" stroke-width="${BRW}" stroke-linecap="round"/>`);
+    e.push(`<line x1="${x1}" y1="${yBase}" x2="${xm}" y2="${yFlr1}" stroke="${CB}" stroke-width="${BRW}" stroke-linecap="round"/>`);
+    // Story 2: FL1 midpoint → roof columns
+    e.push(`<line x1="${xm}" y1="${yFlr1}" x2="${x0}" y2="${yRoof}" stroke="${CB}" stroke-width="${BRW}" stroke-linecap="round"/>`);
+    e.push(`<line x1="${xm}" y1="${yFlr1}" x2="${x1}" y2="${yRoof}" stroke="${CB}" stroke-width="${BRW}" stroke-linecap="round"/>`);
+  }
+
+  // ── columns ──
+  e.push(`<rect x="${x0-CW/2}" y="${yRoof}" width="${CW}" height="${FH}" fill="${CS}" rx="1"/>`);
+  e.push(`<rect x="${x1-CW/2}" y="${yRoof}" width="${CW}" height="${FH}" fill="${CS}" rx="1"/>`);
+
+  // ── beams ──
+  e.push(`<rect x="${x0-CW/2}" y="${yRoof-BH/2}" width="${BAY+CW}" height="${BH}" fill="${CS}" rx="1"/>`);
+  if (sys === 'X')
+    e.push(`<rect x="${x0-CW/2}" y="${yFlr1-BH/2}" width="${BAY+CW}" height="${BH}" fill="${CS}" rx="1"/>`);
+
+  // ── gravity UDL — full beam width, 5 arrows ──
+  const udlBeams = sys === 'V' ? [{y:yRoof, h:sH1}] : [{y:yFlr1, h:sH1}, {y:yRoof, h:sH2}];
+  for (const {y:yf, h:stH} of udlBeams) {
+    const al = Math.max(11, Math.min(18, stH * 0.18));
+    const ytop = yf - BH/2 - al - 3;
+    e.push(`<line x1="${x0}" y1="${ytop}" x2="${x1}" y2="${ytop}" stroke="${CLV}" stroke-width="1.5"/>`);
+    for (let k = 0; k <= 4; k++) {
+      const xa = x0 + k * BAY / 4;
+      e.push(`<line x1="${xa}" y1="${ytop+1}" x2="${xa}" y2="${yf-BH/2-1}" stroke="${CLV}" stroke-width="1.5" marker-end="url(#av)"/>`);
+    }
+    if (al > 13) e.push(`<text x="${xm}" y="${ytop-3}" text-anchor="middle" font-size="9" fill="${CLV}" font-family="Arial,sans-serif">w</text>`);
+  }
+
+  // ── lateral load arrows ──
+  const latFloors = sys === 'V' ? [yRoof] : [yFlr1, yRoof];
+  for (const yf of latFloors) {
+    const as = x0 - 46, ae = x0 - CW/2 - 2;
+    e.push(`<line x1="${as}" y1="${yf}" x2="${ae}" y2="${yf}" stroke="${CLH}" stroke-width="2" marker-end="url(#ah)"/>`);
+    e.push(`<text x="${as-3}" y="${yf-4}" text-anchor="end" font-size="9" fill="${CLH}" font-family="Arial,sans-serif">V</text>`);
+  }
+
+  // ── floor labels ──
+  if (sys === 'X') e.push(`<text x="${x1+CW/2+6}" y="${yFlr1+4}" font-size="9" fill="#666" font-family="Arial,sans-serif">FL 1</text>`);
+  e.push(`<text x="${x1+CW/2+6}" y="${yRoof+4}" font-size="9" fill="#666" font-family="Arial,sans-serif">Roof</text>`);
+
+  // ── brace angle annotation ──
+  {
+    const rArc = 24;
+    // θ₁ at bottom-left corner (story 1 for both V and X)
+    const realTh1 = Math.atan2(H, L/2);
+    const pixTh1  = Math.atan2(sH1, BAY/2);
+    const tDeg1   = (realTh1 * 180 / Math.PI).toFixed(1);
+    const aex1 = +(x0 + rArc * Math.cos(pixTh1)).toFixed(1);
+    const aey1 = +(yBase - rArc * Math.sin(pixTh1)).toFixed(1);
+    e.push(`<line x1="${x0}" y1="${yBase}" x2="${x0+rArc+8}" y2="${yBase}" stroke="${CD}" stroke-width="0.8"/>`);
+    e.push(`<path d="M ${x0+rArc} ${yBase} A ${rArc} ${rArc} 0 0 0 ${aex1} ${aey1}" fill="none" stroke="${CD}" stroke-width="1"/>`);
+    const mTh1 = pixTh1 / 2;
+    const lx1 = +(x0 + (rArc+18) * Math.cos(mTh1)).toFixed(1);
+    const ly1 = +(yBase - (rArc+18) * Math.sin(mTh1)).toFixed(1);
+    e.push(`<text x="${lx1}" y="${ly1}" font-size="9" fill="${CD}" font-family="Arial,sans-serif">θ₁=${tDeg1}°</text>`);
+
+    // θ₂ at top-left corner (story 2, X only) — brace exits down-right toward (xm,yFlr1)
+    if (sys === 'X') {
+      const realTh2 = Math.atan2(H2, L/2);
+      const pixTh2  = Math.atan2(sH2, BAY/2);
+      const tDeg2   = (realTh2 * 180 / Math.PI).toFixed(1);
+      const aex2 = +(x0 + rArc * Math.cos(pixTh2)).toFixed(1);
+      const aey2 = +(yRoof + rArc * Math.sin(pixTh2)).toFixed(1);
+      e.push(`<line x1="${x0}" y1="${yRoof}" x2="${x0+rArc+8}" y2="${yRoof}" stroke="${CD}" stroke-width="0.8"/>`);
+      e.push(`<path d="M ${x0+rArc} ${yRoof} A ${rArc} ${rArc} 0 0 1 ${aex2} ${aey2}" fill="none" stroke="${CD}" stroke-width="1"/>`);
+      const mTh2 = pixTh2 / 2;
+      const lx2 = +(x0 + (rArc+18) * Math.cos(mTh2)).toFixed(1);
+      const ly2 = +(yRoof + (rArc+18) * Math.sin(mTh2)).toFixed(1);
+      e.push(`<text x="${lx2}" y="${ly2}" font-size="9" fill="${CD}" font-family="Arial,sans-serif">θ₂=${tDeg2}°</text>`);
+    }
+  }
+
+  // ── dimension lines ──
+  const dimX = x0 - 58;
+  if (sys === 'V') {
+    e.push(`<line x1="${dimX}" y1="${yBase}" x2="${dimX}" y2="${yRoof}" stroke="${CD}" stroke-width="1"/>`);
+    e.push(`<line x1="${dimX-5}" y1="${yBase}" x2="${dimX+5}" y2="${yBase}" stroke="${CD}" stroke-width="1"/>`);
+    e.push(`<line x1="${dimX-5}" y1="${yRoof}" x2="${dimX+5}" y2="${yRoof}" stroke="${CD}" stroke-width="1"/>`);
+    const mid = (yBase + yRoof) / 2;
+    e.push(`<text transform="rotate(-90,${dimX-14},${mid})" x="${dimX-14}" y="${mid+4}" text-anchor="middle" font-size="10" fill="${CD}" font-family="Arial,sans-serif">H = ${H.toFixed(1)} m</text>`);
+  } else {
+    const mid1 = (yBase + yFlr1) / 2;
+    e.push(`<line x1="${dimX}" y1="${yBase}" x2="${dimX}" y2="${yFlr1}" stroke="${CD}" stroke-width="1"/>`);
+    e.push(`<line x1="${dimX-5}" y1="${yBase}" x2="${dimX+5}" y2="${yBase}" stroke="${CD}" stroke-width="1"/>`);
+    e.push(`<line x1="${dimX-5}" y1="${yFlr1}" x2="${dimX+5}" y2="${yFlr1}" stroke="${CD}" stroke-width="1"/>`);
+    e.push(`<text transform="rotate(-90,${dimX-14},${mid1})" x="${dimX-14}" y="${mid1+4}" text-anchor="middle" font-size="10" fill="${CD}" font-family="Arial,sans-serif">H₁=${H.toFixed(1)} m</text>`);
+    const mid2 = (yFlr1 + yRoof) / 2;
+    e.push(`<line x1="${dimX}" y1="${yFlr1}" x2="${dimX}" y2="${yRoof}" stroke="${CD}" stroke-width="1"/>`);
+    e.push(`<line x1="${dimX-5}" y1="${yRoof}" x2="${dimX+5}" y2="${yRoof}" stroke="${CD}" stroke-width="1"/>`);
+    e.push(`<text transform="rotate(-90,${dimX-14},${mid2})" x="${dimX-14}" y="${mid2+4}" text-anchor="middle" font-size="10" fill="${CD}" font-family="Arial,sans-serif">H₂=${H2.toFixed(1)} m</text>`);
+  }
+
+  // L dimension (bottom)
+  const dy = yBase + 34;
+  e.push(`<line x1="${x0}" y1="${dy}" x2="${x1}" y2="${dy}" stroke="${CD}" stroke-width="1"/>`);
+  e.push(`<line x1="${x0}" y1="${dy-5}" x2="${x0}" y2="${dy+5}" stroke="${CD}" stroke-width="1"/>`);
+  e.push(`<line x1="${x1}" y1="${dy-5}" x2="${x1}" y2="${dy+5}" stroke="${CD}" stroke-width="1"/>`);
+  e.push(`<text x="${xm}" y="${dy+15}" text-anchor="middle" font-size="10" fill="${CD}" font-family="Arial,sans-serif">L = ${L.toFixed(1)} m</text>`);
+
+  el.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SW} ${SH}" style="width:100%;max-height:580px;display:block">
+${e.join('\n')}
+</svg>`;
 }
 
 // ── CALCULATIONS ──────────────────────────────────────────────────────────────
@@ -726,8 +907,8 @@ function calcStrut(beamProfile, beamGrade, L, theta_deg, wg, wq, ws, Lb, SDS, sy
 function runCalc() {
   const L      = +document.getElementById('iL').value;
   const K      = +document.getElementById('iK').value;
-  const theta  = +document.getElementById('iTheta').value;
-  const Lbr    = +document.getElementById('iLbr').value;
+  const theta  = computedTheta;
+  const Lbr    = computedLbr;
   const wg     = +document.getElementById('iWg').value;
   const wq     = +document.getElementById('iWq').value;
   const ws     = +document.getElementById('iWs').value;
